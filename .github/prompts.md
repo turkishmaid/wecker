@@ -20,3 +20,7 @@ Damit man eine falsche Zeitangabe trotzdem noch zurückholen kann, gib zusammen 
 sehr geil!  
 Jetzt modifiziere noch die `pyproject.toml` so, dass `main.py` als `uv tool` mit dem Namen `wecker` installiert wird (`--editable` bitte!).  
 Dazu musst du wohl am besten ein Küken ausbrüten...
+
+## mehr Farbe
+
+Komm, lass uns rich oder blessed nehmen und die drei Ausgabezeilen grün, gelb und rot formatieren. Und zwar knallig!

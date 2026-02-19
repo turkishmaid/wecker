@@ -4,6 +4,10 @@ import time
 import re
 import os
 import platform
+import subprocess
+from rich.console import Console
+
+console = Console()
 
 def parse_time(args):
     # Join all arguments to a single string
@@ -37,27 +41,26 @@ def parse_time(args):
 
 def notify(title, message):
     if platform.system() == "Darwin":
-        os.system(f"""osascript -e 'display notification "{message}" with title "{title}" sound name "Glass"'""")
+        applescript = f'display notification "{message}" with title "{title}" sound name "Glass"'
+        subprocess.run(["osascript", "-e", applescript])
         # Cool feature: Speak the message
-        os.system(f"say '{message}' &")
+        subprocess.Popen(["say", message])
     else:
         # Fallback for other systems (print bell)
         print('\a')
 
 def main():
     if len(sys.argv) < 2:
-        print("Du musst schon sagen wann, z.B. '100 sek' oder 'in 5' (default: Minuten).")
+        console.print("Du musst schon sagen wann, z.B. '100 sek' oder 'in 5' (default: Minuten).", style="bold red")
         sys.exit(1)
 
     # Calculate total seconds
     seconds = parse_time(sys.argv[1:])
     
     if seconds is None:
-        print("Hey Nagus, ich hab die Zeit nicht verstanden.")
+        console.print("Hey Nagus, ich hab die Zeit nicht verstanden.", style="bold red")
         sys.exit(1)
         
-    print(f"Alles klar, Nagus! Wecker läuft im Hintergrund für {seconds} Sekunden.")
-
     pid = os.fork()
     if pid == 0:
         # Child process - detach completely
@@ -78,7 +81,8 @@ def main():
         sys.exit(0)
     else:
         # Parent process
-        print(f"Wecker im Hintergrund.\nAbbrechen mit 'kill {pid}'")
+        console.print(f"[bold green]{seconds} Sekunden[/] (Wecker läuft im Hintergrund)", highlight=False)
+        console.print(f"[red]kill {pid}[/] 👈 wenn's net passt", highlight=False)
         sys.exit(0)
 
 if __name__ == "__main__":
