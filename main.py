@@ -46,35 +46,40 @@ def notify(title, message):
 
 def main():
     if len(sys.argv) < 2:
-        print("Nagus, du musst mir sagen wann! Z.B. '10 min' oder 'Wecker in 5'.")
+        print("Du musst schon sagen wann, z.B. '100 sek' oder 'in 5' (default: Minuten).")
         sys.exit(1)
 
+    # Calculate total seconds
     seconds = parse_time(sys.argv[1:])
     
     if seconds is None:
         print("Hey Nagus, ich hab die Zeit nicht verstanden.")
         sys.exit(1)
         
-    print(f"Alles klar Nagus, Wecker gestellt für {seconds} Sekunden.")
-    
-    try:
-        while seconds > 0:
-            # Format time remaining
-            m, s = divmod(seconds, 60)
-            h, m = divmod(m, 60)
-            time_str = f"{h:02d}:{m:02d}:{s:02d}" if h > 0 else f"{m:02d}:{s:02d}"
-            
-            # Print remaining time and overwrite line
-            sys.stdout.write(f"\r⏳ Zeit bis zum Tee: {time_str}   ")
-            sys.stdout.flush()
-            time.sleep(1)
-            seconds -= 1
-            
-        sys.stdout.write("\r🚨 feddich! 🚨                  \n")
-        notify("Wecker", "Der Tee ist fertig!")
+    print(f"Alles klar, Nagus! Wecker läuft im Hintergrund für {seconds} Sekunden.")
+
+    pid = os.fork()
+    if pid == 0:
+        # Child process - detach completely
+        os.setsid()
         
-    except KeyboardInterrupt:
-        print("\nWecker abgebrochen.")
+        # Redirect standard file descriptors to /dev/null
+        with open(os.devnull, 'r') as devnull:
+            os.dup2(devnull.fileno(), sys.stdin.fileno())
+        with open(os.devnull, 'w') as devnull:
+            os.dup2(devnull.fileno(), sys.stdout.fileno())
+            os.dup2(devnull.fileno(), sys.stderr.fileno())
+            
+        try:
+            time.sleep(seconds)
+            notify("Wecker", "Der Tee ist fertig!")
+        except KeyboardInterrupt:
+            pass
+        sys.exit(0)
+    else:
+        # Parent process
+        print(f"Wecker im Hintergrund.\nAbbrechen mit 'kill {pid}'")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
