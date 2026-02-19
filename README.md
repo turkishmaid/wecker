@@ -23,7 +23,7 @@ uv tool install --editable . --force
 ```sh
 wecker in 10                     # 10 Minuten Brühzeit (Tulsikraut)
 wecker 150s                      # in 150 Sekunden ist der Tee fertig (Sencha)
-wecker in 1 Stunde               # in 10 Stunde ist der Tee fertig (Yogi Tee)
+wecker in 1 Stunde               # in 1 Stunde ist der Tee fertig (Yogi Tee)
 wecker schon fertig! in 5        # "schon fertig!" in 5 Minuten
 wecker Alder? 70 s               # "Alder?" in 70 Sekunden
 wecker Alder? 723s               # "Alder?" in 723 Sekunden
