@@ -5,17 +5,23 @@ import re
 import os
 import platform
 import subprocess
+import signal
+
 from rich.console import Console
 
 console = Console()
 
+# Globale Variablen für den Signal-Handler (im Kindprozess)
+target_time = 0
+global_message = ""
+
 
 def parse_time(args) -> tuple[str, int | None]:
-    # Join all arguments to a single string
-    command = " ".join(args)
+    """Parst die Zeitangabe aus den Kommandozeilenargumenten und gibt die Nachricht und die Zeit in Sekunden zurück."""
 
-    # Try to find a number
+    command = " ".join(args)
     match = re.search(
+        # Pattern: Nachricht [in] Zahl[Einheit]
         r"^(.*?)(?:(?:\s+|^)in)?(?:\s+|^)(\d+)\s*(s|sek|sekunden|sekunde|m|min|minuten|minute|h|std|stunden|stunde|d|t|tag|tagen|tage)?$",
         command,
         re.IGNORECASE,
@@ -31,12 +37,10 @@ def parse_time(args) -> tuple[str, int | None]:
     if not message:
         message = "Der Tee ist fertig!"
 
-    # Default to minutes if no unit
     if not unit:
         return message, value * 60
 
     unit = unit.strip().lower()
-
     if unit in ["s", "sek", "sekunde", "sekunden"]:
         return message, value
     elif unit in ["m", "min", "minute", "minuten"]:
@@ -46,43 +50,69 @@ def parse_time(args) -> tuple[str, int | None]:
     elif unit in ["d", "t", "tag", "tage", "tagen"]:
         return message, value * 86400
 
-    return message, value * 60  # Default fallback
+    return message, value * 60
 
 
 def notify(title, message: str = "Der Tee ist fertig!"):
+    """Sendet eine Benachrichtigung an den Benutzer (notification und say)."""
     if platform.system() == "Darwin":
         applescript = (
             f'display notification "{message}" with title "{title}" sound name "Glass"'
         )
         subprocess.run(["osascript", "-e", applescript])
-        # Cool feature: Speak the message
         subprocess.Popen(["say", message])
     else:
-        # Fallback for other systems (print bell)
+        # Einfacher Bell-Sound für Linux/Windows
         print("\a")
 
 
+def status_handler(signum, frame):
+    """Signal-Handler für SIGUSR1, der den verbleibenden Timer anzeigt."""
+
+    remaining = int(target_time - time.time())
+
+    if remaining <= 0:
+        msg = "Der Timer ist bereits abgelaufen."
+    elif remaining < 60:
+        msg = f"Noch {remaining} Sekunden."
+    else:
+        minutes = (remaining + 30) // 60
+        unit = "Minute" if minutes == 1 else "Minuten"
+        msg = f"Noch etwa {minutes} {unit}."
+
+    subprocess.run(
+        ["osascript", "-e", f'display notification "{msg}" with title "Timer Status"']
+    )
+    subprocess.Popen(["say", msg])
+
+
 def main():
-    if len(sys.argv) < 2:
+    """Parst die Kommandozeilenargumente, startet den Timer im Hintergrund und registriert den Signal-Handler."""
+    global target_time, global_message
+
+    if platform.system() != "Darwin":
         console.print(
-            "Du musst schon sagen wann, z.B. '100 sek' oder 'in 5' (default: Minuten).",
-            style="bold red",
+            "Hey Nagus, ich bin ein Wecker für macOS. Bitte sag mir, wann ich klingeln soll, z.B. '100 sek'.",
+            style="bold cyan",
         )
         sys.exit(1)
 
-    # Calculate total seconds
-    message, seconds = parse_time(sys.argv[1:])
+    if len(sys.argv) < 2:
+        console.print("Du musst schon sagen wann, z.B. '100 sek'.", style="bold red")
+        sys.exit(1)
 
+    message, seconds = parse_time(sys.argv[1:])
     if seconds is None:
         console.print("Hey Nagus, ich hab die Zeit nicht verstanden.", style="bold red")
         sys.exit(1)
 
-    pid = os.fork()
-    if pid == 0:
-        # Child process - detach completely
-        os.setsid()
+    target_time = time.time() + seconds
+    global_message = message
 
-        # Redirect standard file descriptors to /dev/null
+    pid = os.fork()
+    if pid == 0:  # Kind
+        os.setsid()
+        signal.signal(signal.SIGUSR1, status_handler)
         with open(os.devnull, "r") as devnull:
             os.dup2(devnull.fileno(), sys.stdin.fileno())
         with open(os.devnull, "w") as devnull:
@@ -90,20 +120,25 @@ def main():
             os.dup2(devnull.fileno(), sys.stderr.fileno())
 
         try:
-            time.sleep(seconds)
-            notify("Wecker", message)
+            # Signale unterbrechen sleep
+            while True:
+                now = time.time()
+                if now >= target_time:
+                    break
+                time.sleep(target_time - now)
+            notify("Wecker", global_message)
         except KeyboardInterrupt:
+            # sollte nicht passieren, da stdin geschlossen ist
             pass
         sys.exit(0)
-    else:
-        # Parent process
-        # Quittung mit Zeit und PID
+
+    else:  # Elter
+        # fmt: off
         console.print(f"[bold]{message}[/]", highlight=False)
-        console.print(
-            f"[bold green]{seconds} Sekunden[/] (Wecker läuft im Hintergrund)",
-            highlight=False,
-        )
-        console.print(f"[red]kill {pid}[/] 👈 wenn's net passt", highlight=False)
+        console.print(f"[bold green]{seconds} Sekunden[/] (läuft im Hintergrund)", highlight=False)
+        console.print(f"[cyan]Abfrage: [/][bold]kill -USR1 {pid}[/]", highlight=False)
+        console.print(f"[red]Abbruch: [/][bold]kill {pid}[/]", highlight=False)
+        # fmt: on
         sys.exit(0)
 
 

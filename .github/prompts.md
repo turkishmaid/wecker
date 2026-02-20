@@ -48,3 +48,9 @@ Beispiele:
 
 Und die Quittung bekommt eine neue erste Zeile, nämlich die tatsächliche `message`, die kommen wird.
 
+
+## Abfrage-Option
+
+Könnte man das so erweitern, dass der Hintergrundprozess, z.B. auf ein Signal hin, ausgeben könnte, wie lange er noch auf der Uhr hat?  
+Für die Angabe der restlichen Zeit ist z.B. "in 3 Minuten" (sauber gerundet) völlig ausreichend.
+
