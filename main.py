@@ -45,9 +45,9 @@ def parse_time(args) -> tuple[str, int | None]:
         return message, value
     elif unit in ["m", "min", "minute", "minuten", "minutes"]:
         return message, value * 60
-    elif unit in ["h", "hour", "hours", "std", "stunde", "stunden"]:
+    elif unit in ["h", "std", "stunde", "stunden", "hour", "hours"]:
         return message, value * 3600
-    elif unit in ["d", "day", "days", "t", "tag", "tage", "tagen"]:
+    elif unit in ["t", "tag", "tage", "tagen", "d", "day", "days"]:
         return message, value * 86400  # Blödsinn
 
     return message, value * 60
