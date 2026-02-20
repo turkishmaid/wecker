@@ -41,29 +41,24 @@ def parse_time(args) -> tuple[str, int | None]:
         return message, value * 60
 
     unit = unit.strip().lower()
-    if unit in ["s", "sek", "sekunde", "sekunden"]:
+    if unit in ["s", "sek", "sekunde", "sekunden", "sec", "second", "seconds"]:
         return message, value
-    elif unit in ["m", "min", "minute", "minuten"]:
+    elif unit in ["m", "min", "minute", "minuten", "minutes"]:
         return message, value * 60
-    elif unit in ["h", "std", "stunde", "stunden"]:
+    elif unit in ["h", "hour", "hours", "std", "stunde", "stunden"]:
         return message, value * 3600
-    elif unit in ["d", "t", "tag", "tage", "tagen"]:
-        return message, value * 86400
+    elif unit in ["d", "day", "days", "t", "tag", "tage", "tagen"]:
+        return message, value * 86400  # Blödsinn
 
     return message, value * 60
 
 
 def notify(title, message: str = "Der Tee ist fertig!"):
     """Sendet eine Benachrichtigung an den Benutzer (notification und say)."""
-    if platform.system() == "Darwin":
-        applescript = (
-            f'display notification "{message}" with title "{title}" sound name "Glass"'
-        )
-        subprocess.run(["osascript", "-e", applescript])
-        subprocess.Popen(["say", message])
-    else:
-        # Einfacher Bell-Sound für Linux/Windows
-        print("\a")
+    applescript = f'display notification "{message}" with title "{title}" sound name "Glass"'
+    # remember, we are on Darwin
+    subprocess.run(["osascript", "-e", applescript])
+    subprocess.Popen(["say", message])
 
 
 def status_handler(signum, frame):
@@ -80,9 +75,7 @@ def status_handler(signum, frame):
         unit = "Minute" if minutes == 1 else "Minuten"
         msg = f"Noch etwa {minutes} {unit}."
 
-    subprocess.run(
-        ["osascript", "-e", f'display notification "{msg}" with title "Timer Status"']
-    )
+    subprocess.run(["osascript", "-e", f'display notification "{msg}" with title "Timer Status"'])
     subprocess.Popen(["say", msg])
 
 
@@ -91,10 +84,7 @@ def main():
     global target_time, global_message
 
     if platform.system() != "Darwin":
-        console.print(
-            "Hey Nagus, ich bin ein Wecker für macOS. Bitte sag mir, wann ich klingeln soll, z.B. '100 sek'.",
-            style="bold cyan",
-        )
+        console.print("Ich wecke nur unter macOS =:3", style="bold red")
         sys.exit(1)
 
     if len(sys.argv) < 2:
@@ -103,7 +93,7 @@ def main():
 
     message, seconds = parse_time(sys.argv[1:])
     if seconds is None:
-        console.print("Hey Nagus, ich hab die Zeit nicht verstanden.", style="bold red")
+        console.print("Ich hab die Zeit nicht verstanden.", style="bold red")
         sys.exit(1)
 
     target_time = time.time() + seconds
@@ -133,12 +123,10 @@ def main():
         sys.exit(0)
 
     else:  # Elter
-        # fmt: off
         console.print(f"[bold]{message}[/]", highlight=False)
         console.print(f"[bold green]{seconds} Sekunden[/] (läuft im Hintergrund)", highlight=False)
         console.print(f"[cyan]Abfrage: [/][bold]kill -USR1 {pid}[/]", highlight=False)
         console.print(f"[red]Abbruch: [/][bold]kill {pid}[/]", highlight=False)
-        # fmt: on
         sys.exit(0)
 
 
