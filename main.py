@@ -87,6 +87,10 @@ def main():
         console.print("Ich wecke nur unter macOS =:3", style="bold red")
         sys.exit(1)
 
+    if os.environ.get("SSH_TTY") or os.environ.get("SSH_CONNECTION"):
+        console.print("Ich wecke nicht remote!", style="bold red")
+        sys.exit(1)
+
     if len(sys.argv) < 2:
         console.print("Du musst schon sagen wann, z.B. '100 sek'.", style="bold red")
         sys.exit(1)

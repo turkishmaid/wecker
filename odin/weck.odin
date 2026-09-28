@@ -222,6 +222,12 @@ main :: proc() {
 		print_usage_error("Ich wecke nur unter macOS =:3")
 	}
 
+	ssh_tty := os.get_env_alloc("SSH_TTY", context.allocator)
+	ssh_conn := os.get_env_alloc("SSH_CONNECTION", context.allocator)
+	if ssh_tty != "" || ssh_conn != "" {
+		print_usage_error("Ich wecke nicht remote!")
+	}
+
 	if len(os.args) < 2 {
 		print_usage_error("Du musst schon sagen wann, z.B. '100 sek'.")
 	}
