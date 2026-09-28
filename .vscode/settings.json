@@ -1,0 +1,6 @@
+{
+    "editor.wrappingIndent": "indent",
+    "files.autoSave": "onFocusChange",
+    "chat.disableAIFeatures": false,
+    "workbench.tree.indent": 16,
+}
